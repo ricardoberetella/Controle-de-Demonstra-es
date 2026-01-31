@@ -118,11 +118,10 @@ const App: React.FC = () => {
     }
   };
 
-  // --- TELA DE LOGIN ATUALIZADA ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
           <div className="bg-[#004B95] p-8 text-center">
             <div className="inline-block bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] mb-6 shadow-lg">
               SENAI
@@ -163,22 +162,34 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
-          <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] shadow-lg">SENAI</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 shrink-0">
+             <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] shadow-lg">SENAI</div>
+          </div>
           
-          <div className="flex bg-black/20 p-1 rounded-xl gap-1">
-            {classes.map(c => (
-              <button 
-                key={c.id} 
-                onClick={() => setActiveClassId(c.id)} 
-                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95]' : 'text-white/60 hover:text-white'}`}
-              >
-                {c.name.includes('Manhã') ? 'M' : 'T'}{c.name.slice(-1)}
-              </button>
-            ))}
+          <div className="flex flex-col items-center justify-center text-center flex-1">
+            <h1 className="text-white font-black text-[10px] sm:text-lg uppercase tracking-tight leading-none">
+              Mecânico de Usinagem Convencional
+            </h1>
+            <p className="text-white/60 font-bold text-[8px] sm:text-xs uppercase tracking-[0.1em] mt-1 border-t border-white/10 pt-1 w-full max-w-[200px]">
+              controle de demonstrações
+            </p>
           </div>
 
-          <button onClick={handleLogout} className="text-white/70 hover:text-white text-[10px] font-black uppercase border border-white/30 px-3 py-2 rounded-lg transition-all">Sair</button>
+          <div className="flex items-center gap-2">
+            <div className="flex bg-black/20 p-1 rounded-xl gap-1">
+              {classes.map(c => (
+                <button 
+                  key={c.id} 
+                  onClick={() => setActiveClassId(c.id)} 
+                  className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
+                >
+                  {c.name.includes('Manhã') ? 'M' : 'T'}{c.name.slice(-1)}
+                </button>
+              ))}
+            </div>
+            <button onClick={handleLogout} className="text-white/70 hover:text-white text-[9px] font-black uppercase border border-white/20 px-3 py-2 rounded-lg transition-all hover:bg-white/10">Sair</button>
+          </div>
         </div>
       </header>
 
@@ -186,7 +197,7 @@ const App: React.FC = () => {
         <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
           <div className="flex-1">
             <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter mb-4">{activeClass?.name}</h2>
-            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Painel Analítico</button>
+            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all">Painel Analítico</button>
           </div>
           <form onSubmit={handleAddStudent} className="flex gap-2">
             <input 
