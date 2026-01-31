@@ -163,33 +163,32 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 shrink-0">
+          <div className="flex items-center shrink-0">
              <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] shadow-lg">SENAI</div>
           </div>
           
-          <div className="flex flex-col items-center justify-center text-center flex-1">
-            <h1 className="text-white font-black text-[10px] sm:text-lg uppercase tracking-tight leading-none">
+          <div className="hidden md:flex flex-col items-center justify-center text-center flex-1">
+            <h1 className="text-white font-black text-lg uppercase tracking-tight leading-none">
               Mecânico de Usinagem Convencional
             </h1>
-            <p className="text-white/60 font-bold text-[8px] sm:text-xs uppercase tracking-[0.1em] mt-1 border-t border-white/10 pt-1 w-full max-w-[200px]">
+            <p className="text-white/60 font-bold text-xs uppercase tracking-[0.1em] mt-1 border-t border-white/10 pt-1 w-full max-w-[200px]">
               controle de demonstrações
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div className="flex bg-black/20 p-1 rounded-xl gap-1">
-              {classes.map((c, index) => (
+              {classes.map((c) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveClassId(c.id)} 
-                  className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
+                  className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all whitespace-nowrap ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
                 >
-                  {/* Mapeia os nomes das turmas para as siglas desejadas baseadas na posição */}
-                  {index === 0 ? 'MA' : index === 1 ? 'MB' : index === 2 ? 'TA' : 'TB'}
+                  {c.name}
                 </button>
               ))}
             </div>
-            <button onClick={handleLogout} className="text-white/70 hover:text-white text-[9px] font-black uppercase border border-white/20 px-3 py-2 rounded-lg transition-all hover:bg-white/10">Sair</button>
+            <button onClick={handleLogout} className="text-white/70 hover:text-white text-[9px] font-black uppercase border border-white/20 px-3 py-2 rounded-lg transition-all hover:bg-white/10 shrink-0">Sair</button>
           </div>
         </div>
       </header>
