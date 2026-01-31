@@ -167,7 +167,7 @@ const App: React.FC = () => {
              <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] shadow-lg">SENAI</div>
           </div>
           
-          <div className="hidden md:flex flex-col items-center justify-center text-center flex-1">
+          <div className="hidden lg:flex flex-col items-center justify-center text-center flex-1">
             <h1 className="text-white font-black text-lg uppercase tracking-tight leading-none">
               Mecânico de Usinagem Convencional
             </h1>
@@ -178,13 +178,14 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-3">
             <div className="flex bg-black/20 p-1 rounded-xl gap-1">
-              {classes.map((c) => (
+              {classes.map((c, index) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveClassId(c.id)} 
                   className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all whitespace-nowrap ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
                 >
-                  {c.name}
+                  {/* Siglas curtas apenas nos botões do topo para não poluir */}
+                  {index === 0 ? 'MA' : index === 1 ? 'MB' : index === 2 ? 'TA' : 'TB'}
                 </button>
               ))}
             </div>
@@ -196,9 +197,18 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
           <div className="flex-1">
-            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter mb-4">{activeClass?.name}</h2>
-            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all">Painel Analítico</button>
+            {/* TÍTULO COMPLETO LOGO ACIMA DO BOTÃO PAINEL ANALÍTICO */}
+            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter mb-4">
+              {activeClass?.name === "Manhã - Turma A" ? "Manhã Turma A" :
+               activeClass?.name === "Manhã - Turma B" ? "Manhã Turma B" :
+               activeClass?.name === "Tarde - Turma A" ? "Tarde Turma A" :
+               activeClass?.name === "Tarde - Turma B" ? "Tarde Turma B" : activeClass?.name}
+            </h2>
+            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all">
+              Painel Analítico
+            </button>
           </div>
+          
           <form onSubmit={handleAddStudent} className="flex gap-2">
             <input 
               type="text" 
