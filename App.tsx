@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// Importação compatível com seu sistema de ESM.sh
+// Importação via CDN para garantir compatibilidade total no navegador
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
@@ -9,7 +9,7 @@ import OperationCard from './components/OperationCard';
 import StudentChecklistModal from './components/StudentChecklistModal';
 import GeneralSummaryModal from './components/GeneralSummaryModal';
 
-// Suas chaves de acesso
+// Configuração do seu Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyB0i38lQMhE9UgUIh5rqmZAuu1Z-KXUcI0",
   authDomain: "controle-de-demonstracao.firebaseapp.com",
@@ -35,7 +35,7 @@ const App: React.FC = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
-  // 1. BUSCAR DADOS DO FIREBASE
+  // 1. BUSCAR DADOS (Sincronização em tempo real com travas contra erros)
   useEffect(() => {
     const studentsRef = ref(db, 'students');
     const unsubscribe = onValue(studentsRef, (snapshot) => {
@@ -43,7 +43,9 @@ const App: React.FC = () => {
       if (data) {
         const firebaseStudents = Object.keys(data).map(key => ({
           ...data[key],
-          id: key 
+          id: key,
+          // Garante que demonstrations nunca seja nulo (evita erro de tela branca)
+          demonstrations: data[key].demonstrations || {}
         }));
         setStudents(firebaseStudents);
       } else {
@@ -53,6 +55,7 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Filtra os alunos pela turma ativa
   const classStudents = useMemo(() => {
     return students.filter(s => s.classId === activeClassId)
                    .sort((a, b) => a.name.localeCompare(b.name));
@@ -68,21 +71,24 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // 2. ATUALIZAR STATUS (MARCAR OP)
+  // 2. ATUALIZAR STATUS (Marcação de concluído/pendente)
   const handleUpdateStatus = (studentId: string, opId: string) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    
     const student = students.find(s => s.id === studentId);
     if (!student) return;
 
-    const isDone = student.demonstrations?.[opId]?.status === DemonstrationStatus.DONE;
+    // Checa se já está marcado como feito
+    const currentStatus = student.demonstrations?.[opId]?.status;
+    const isDone = currentStatus === DemonstrationStatus.DONE;
     
-    const updates: any = {};
-    updates[`students/${studentId}/demonstrations/${opId}`] = {
+    const statusRef = ref(db, `students/${studentId}/demonstrations/${opId}`);
+
+    set(statusRef, {
       status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE,
       date: isDone ? null : formattedDate
-    };
-    update(ref(db), updates);
+    });
   };
 
   // 3. ADICIONAR ALUNO
@@ -97,11 +103,11 @@ const App: React.FC = () => {
     set(newStudentRef, {
       name: name,
       classId: activeClassId,
-      demonstrations: {}
+      demonstrations: {} // Inicia sem marcações
     }).then(() => setNewStudentName(''));
   };
 
-  // 4. EDITAR NOME
+  // 4. EDITAR NOME DO ALUNO
   const onUpdateStudentName = (id: string, newName: string) => {
     const sanitized = newName.trim().toUpperCase();
     if (!sanitized) return;
@@ -110,13 +116,14 @@ const App: React.FC = () => {
 
   // 5. DELETAR ALUNO
   const onDeleteStudent = (id: string) => {
-    if (window.confirm("Deseja realmente excluir este aluno?")) {
+    if (window.confirm("Tem certeza que deseja excluir este aluno?")) {
       remove(ref(db, `students/${id}`));
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
+      {/* CABEÇALHO */}
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
           <div className="flex items-center gap-4 shrink-0">
@@ -150,6 +157,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {/* CONTEÚDO PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
           <div className="flex-1">
@@ -180,6 +188,7 @@ const App: React.FC = () => {
           </form>
         </div>
 
+        {/* GRID DE OPERAÇÕES */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {operations.map(op => {
             const completedCount = classStudents.filter(s => s.demonstrations?.[op.id]?.status === DemonstrationStatus.DONE).length;
@@ -196,6 +205,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
+      {/* MODAL DE CHECKLIST (POR ALUNO) */}
       {isModalOpen && selectedOp && (
         <StudentChecklistModal 
           key={`modal-op-${selectedOp.id}`}
@@ -208,6 +218,7 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* MODAL DE RESUMO GERAL */}
       {isSummaryOpen && (
         <GeneralSummaryModal 
           activeClass={activeClass!}
