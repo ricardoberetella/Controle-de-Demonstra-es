@@ -22,7 +22,6 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const App: React.FC = () => {
-  // Estado de autenticação iniciado pelo localStorage para não deslogar ao atualizar
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return localStorage.getItem('auth_demonstracao') === 'true';
   });
@@ -40,10 +39,9 @@ const App: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const SENHA_MESTRA = "ianes662"; 
-    if (passwordInput === SENHA_MESTRA) {
+    if (passwordInput === "ianes662") {
       setIsAuthenticated(true);
-      localStorage.setItem('auth_demonstracao', 'true'); // Salva o login
+      localStorage.setItem('auth_demonstracao', 'true');
       setLoginError(false);
     } else {
       setLoginError(true);
@@ -53,22 +51,15 @@ const App: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('auth_demonstracao'); // Remove o login
-    setPasswordInput('');
+    localStorage.removeItem('auth_demonstracao');
   };
 
   useEffect(() => {
     if (!isAuthenticated) return;
-    const studentsRef = ref(db, 'students');
-    const unsubscribe = onValue(studentsRef, (snapshot) => {
+    const unsubscribe = onValue(ref(db, 'students'), (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const firebaseStudents = Object.keys(data).map(key => ({
-          ...data[key],
-          id: key,
-          demonstrations: data[key].demonstrations || {}
-        }));
-        setStudents(firebaseStudents);
+        setStudents(Object.keys(data).map(key => ({ ...data[key], id: key, demonstrations: data[key].demonstrations || {} })));
       } else {
         setStudents([]);
       }
@@ -77,100 +68,35 @@ const App: React.FC = () => {
   }, [isAuthenticated]);
 
   const classStudents = useMemo(() => {
-    return students.filter(s => s.classId === activeClassId)
-                   .sort((a, b) => a.name.localeCompare(b.name));
+    return students.filter(s => s.classId === activeClassId).sort((a, b) => a.name.localeCompare(b.name));
   }, [students, activeClassId]);
 
-  const activeClass = useMemo(() => 
-    classes.find(c => c.id === activeClassId), 
-    [activeClassId, classes]
-  );
+  const activeClass = useMemo(() => classes.find(c => c.id === activeClassId), [activeClassId, classes]);
 
-  const formatClassName = (name: string) => {
-    if (name.includes("Manhã") && name.includes("A")) return "Manhã Turma A";
-    if (name.includes("Manhã") && name.includes("B")) return "Manhã Turma B";
-    if (name.includes("Tarde") && name.includes("A")) return "Tarde Turma A";
-    if (name.includes("Tarde") && name.includes("B")) return "Tarde Turma B";
-    return name;
-  };
-
-  const handleUpdateStatus = (studentId: string, opId: string) => {
-    const today = new Date();
-    const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
-    const student = students.find(s => s.id === studentId);
-    if (!student) return;
-    const isDone = student.demonstrations?.[opId]?.status === DemonstrationStatus.DONE;
-    const statusRef = ref(db, `students/${studentId}/demonstrations/${opId}`);
-    set(statusRef, {
-      status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE,
-      date: isDone ? null : formattedDate
-    });
-  };
-
-  const handleAddStudent = (e: React.FormEvent) => {
-    e.preventDefault();
-    const name = newStudentName.trim().toUpperCase();
-    if (!name) return;
-    const studentsRef = ref(db, 'students');
-    push(studentsRef, {
-      name: name,
-      classId: activeClassId,
-      demonstrations: {}
-    }).then(() => setNewStudentName(''));
-  };
-
-  const onUpdateStudentName = (id: string, newName: string) => {
-    const sanitized = newName.trim().toUpperCase();
-    if (!sanitized) return;
-    update(ref(db, `students/${id}`), { name: sanitized });
-  };
-
-  const onDeleteStudent = (id: string) => {
-    if (window.confirm("Excluir aluno?")) {
-      remove(ref(db, `students/${id}`));
-    }
-  };
-
-  // Componente de Logo Reutilizável (Maior e seguindo o anexo)
-  const SenaiLogo = () => (
-    <div className="bg-[#E30613] text-white px-8 py-3 font-black text-4xl italic skew-x-[-12deg] shadow-xl inline-block border-l-8 border-white/20">
+  // Componente de Logo Otimizado para Tablet
+  const SenaiLogo = ({ size = "normal" }: { size?: "small" | "normal" }) => (
+    <div className={`bg-[#E30613] text-white ${size === 'small' ? 'px-4 py-1.5 text-xl' : 'px-6 py-2 text-3xl'} font-black italic skew-x-[-12deg] shadow-lg inline-block`}>
       SENAI
     </div>
   );
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-          <div className="bg-[#004B95] p-12 text-center">
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+          <div className="bg-[#004B95] p-8 text-center">
             <SenaiLogo />
-            <h1 className="text-white font-black text-2xl uppercase tracking-tight leading-tight mt-8">
-              Mecânico de Usinagem Convencional
-            </h1>
-            <p className="text-white/70 font-bold text-sm uppercase tracking-[0.2em] mt-3 italic">
-              controle de demonstrações
-            </p>
+            <h1 className="text-white font-black text-lg uppercase mt-6 leading-tight">Mecânico de Usinagem</h1>
           </div>
-          
-          <form onSubmit={handleLogin} className="p-8">
-            <label className="block text-slate-500 font-bold text-xs uppercase mb-3 tracking-widest text-center">
-              Digite a senha de acesso
-            </label>
+          <form onSubmit={handleLogin} className="p-6">
             <input 
-              type="password"
-              value={passwordInput}
+              type="password" 
+              value={passwordInput} 
               onChange={(e) => setPasswordInput(e.target.value)}
-              className={`w-full bg-slate-100 border-2 ${loginError ? 'border-red-500' : 'border-slate-200'} rounded-xl px-4 py-4 outline-none focus:border-[#004B95] text-center font-bold text-2xl transition-all shadow-inner`}
-              autoFocus
+              placeholder="SENHA"
+              className="w-full bg-slate-100 border-2 rounded-xl p-4 text-center font-bold text-xl outline-none focus:border-[#004B95]"
             />
-            {loginError && <p className="text-red-500 text-xs font-black mt-3 text-center uppercase">Senha incorreta!</p>}
-            
-            <button 
-              type="submit" 
-              className="w-full bg-[#004B95] text-white font-black py-5 rounded-xl mt-6 hover:bg-blue-800 transition-all active:scale-95 shadow-lg uppercase tracking-widest text-sm"
-            >
-              Entrar no Sistema
-            </button>
+            <button type="submit" className="w-full bg-[#004B95] text-white font-black py-4 rounded-xl mt-4 uppercase tracking-widest text-sm shadow-lg">Entrar</button>
           </form>
         </div>
       </div>
@@ -178,53 +104,40 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans pb-20">
+    <div className="min-h-screen bg-slate-50 font-sans pb-10">
+      {/* Header Compacto para Tablet */}
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50 border-b-4 border-[#E30613]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-32 flex items-center justify-between gap-4">
-          <div className="flex items-center shrink-0">
-             <SenaiLogo />
-          </div>
+        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+          <SenaiLogo size="small" />
           
-          <div className="hidden lg:flex flex-col items-center justify-center text-center flex-1 px-4">
-            <h1 className="text-white font-black text-2xl uppercase tracking-tight leading-none">
-              Mecânico de Usinagem Convencional
-            </h1>
-            <p className="text-white/60 font-bold text-sm uppercase tracking-[0.1em] mt-2 border-t border-white/10 pt-1 w-full max-w-[300px]">
-              controle de demonstrações
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex bg-black/20 p-1.5 rounded-xl gap-1">
-              {classes.map((c, index) => (
+          <div className="flex items-center gap-2">
+            <div className="flex bg-black/20 p-1 rounded-lg">
+              {['MA', 'MB', 'TA', 'TB'].map((label, i) => (
                 <button 
-                  key={c.id} 
-                  onClick={() => setActiveClassId(c.id)} 
-                  className={`px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-tight transition-all whitespace-nowrap ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md scale-105' : 'text-white/60 hover:text-white'}`}
+                  key={classes[i].id} 
+                  onClick={() => setActiveClassId(classes[i].id)} 
+                  className={`px-3 py-1.5 rounded-md text-[10px] font-black ${activeClassId === classes[i].id ? 'bg-white text-[#004B95]' : 'text-white/60'}`}
                 >
-                  {index === 0 ? 'MA' : index === 1 ? 'MB' : index === 2 ? 'TA' : 'TB'}
+                  {label}
                 </button>
               ))}
             </div>
-            <button 
-              onClick={handleLogout} 
-              className="text-white font-black text-xs uppercase bg-[#E30613] px-5 py-2.5 rounded-xl transition-all hover:brightness-110 shadow-lg active:scale-95"
-            >
-              Sair
+            <button onClick={handleLogout} className="bg-red-600 text-white p-2 rounded-lg"><span className="sr-only">Sair</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
-          <div className="flex-1">
-            <h2 className="text-6xl font-black text-slate-900 uppercase italic tracking-tighter mb-4 leading-none">
-              {activeClass ? formatClassName(activeClass.name) : ""}
+      <main className="px-4 py-6">
+        <div className="mb-6 flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">
+              {activeClass?.name.split(' - ')[1] || "Turma"}
             </h2>
-            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg hover:brightness-110 active:scale-95 transition-all">
-              Painel Analítico
-            </button>
+            <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase shadow-md">Painel</button>
           </div>
           
           <form onSubmit={handleAddStudent} className="flex gap-2">
@@ -232,14 +145,15 @@ const App: React.FC = () => {
               type="text" 
               value={newStudentName} 
               onChange={(e) => setNewStudentName(e.target.value)} 
-              placeholder="NOME DO ALUNO..." 
-              className="bg-white border-2 border-slate-200 px-6 py-4 rounded-xl text-sm font-black uppercase w-80 focus:border-[#E30613] outline-none shadow-sm" 
+              placeholder="NOVO ALUNO..." 
+              className="flex-1 bg-white border-2 border-slate-200 px-4 py-3 rounded-xl text-sm font-bold uppercase outline-none focus:border-[#E30613]" 
             />
-            <button type="submit" className="bg-[#E30613] text-white px-8 rounded-xl font-black text-sm uppercase shadow-lg hover:brightness-110 active:scale-95 transition-all">ADD</button>
+            <button type="submit" className="bg-[#E30613] text-white px-6 rounded-xl font-black text-sm shadow-md">ADD</button>
           </form>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        {/* Grid de Operações otimizado para Tablet (2 colunas em telas menores) */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {operations.map(op => (
             <OperationCard 
               key={op.id} 
@@ -252,14 +166,22 @@ const App: React.FC = () => {
         </div>
       </main>
 
+      {/* Modais ajustados internamente nos seus respectivos arquivos para max-w-full ou max-w-lg */}
       {isModalOpen && selectedOp && (
         <StudentChecklistModal 
           operation={selectedOp} 
           students={classStudents} 
           onClose={() => setIsModalOpen(false)} 
-          onToggleStatus={(id) => handleUpdateStatus(id, selectedOp.id)} 
-          onDeleteStudent={onDeleteStudent} 
-          onUpdateStudentName={onUpdateStudentName} 
+          onToggleStatus={(id) => {
+             const student = students.find(s => s.id === id);
+             const isDone = student?.demonstrations?.[selectedOp.id]?.status === DemonstrationStatus.DONE;
+             set(ref(db, `students/${id}/demonstrations/${selectedOp.id}`), {
+               status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE,
+               date: isDone ? null : `${new Date().getDate()}/${new Date().getMonth()+1}`
+             });
+          }} 
+          onDeleteStudent={(id) => window.confirm("Excluir?") && remove(ref(db, `students/${id}`))} 
+          onUpdateStudentName={(id, name) => update(ref(db, `students/${id}`), { name: name.toUpperCase() })} 
         />
       )}
       
@@ -269,8 +191,8 @@ const App: React.FC = () => {
           students={classStudents} 
           operations={operations} 
           onClose={() => setIsSummaryOpen(false)} 
-          onDeleteStudent={onDeleteStudent} 
-          onUpdateStudentName={onUpdateStudentName} 
+          onDeleteStudent={(id) => window.confirm("Excluir?") && remove(ref(db, `students/${id}`))} 
+          onUpdateStudentName={(id, name) => update(ref(db, `students/${id}`), { name: name.toUpperCase() })} 
         />
       )}
     </div>
