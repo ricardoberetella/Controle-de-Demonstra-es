@@ -1,10 +1,29 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
+// Firebase Imports
+import { initializeApp } from "firebase/app";
+import { getDatabase, ref, set, push, onValue, remove, update } from "firebase/database";
+
 import { ClassRoom, Student, Operation, DemonstrationStatus } from './types';
 import { INITIAL_CLASSES, INITIAL_OPERATIONS } from './constants';
 import OperationCard from './components/OperationCard';
 import StudentChecklistModal from './components/StudentChecklistModal';
 import GeneralSummaryModal from './components/GeneralSummaryModal';
+
+// --- CONFIGURAÇÃO DO SEU FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyB0i38lQMhE9UgUIh5rqmZAuu1Z-KXUcI0",
+  authDomain: "controle-de-demonstracao.firebaseapp.com",
+  databaseURL: "https://controle-de-demonstracao-default-rtdb.firebaseio.com",
+  projectId: "controle-de-demonstracao",
+  storageBucket: "controle-de-demonstracao.firebasestorage.app",
+  messagingSenderId: "804320803586",
+  appId: "1:804320803586:web:82832e71ff3fef9e81a01b",
+  measurementId: "G-KXRZLERB76"
+};
+
+// Inicializando Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 const App: React.FC = () => {
   const [classes] = useState<ClassRoom[]>(INITIAL_CLASSES);
@@ -17,23 +36,26 @@ const App: React.FC = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
-  // Carregar dados do LocalStorage
+  // 1. CARREGAR DADOS DO FIREBASE (Substituiu o LocalStorage)
   useEffect(() => {
-    const saved = localStorage.getItem('senai_track_v_dashboard');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setStudents(parsed);
-      } catch (e) {
-        console.error("Erro ao carregar dados do armazenamento local");
+    const studentsRef = ref(db, 'students');
+    // O 'onValue' escuta o banco em tempo real
+    const unsubscribe = onValue(studentsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // Converte o objeto do Firebase em um Array para o React
+        const firebaseStudents = Object.keys(data).map(key => ({
+          ...data[key],
+          id: key // Usa a chave única do Firebase como ID
+        }));
+        setStudents(firebaseStudents);
+      } else {
+        setStudents([]);
       }
-    }
-  }, []);
+    });
 
-  // Salvar dados no LocalStorage sempre que houver mudança
-  useEffect(() => {
-    localStorage.setItem('senai_track_v_dashboard', JSON.stringify(students));
-  }, [students]);
+    return () => unsubscribe(); // Limpa a conexão ao fechar
+  }, []);
 
   const classStudents = useMemo(() => {
     return students.filter(s => s.classId === activeClassId)
@@ -50,66 +72,69 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  // 2. ATUALIZAR STATUS NO FIREBASE
   const handleUpdateStatus = (studentId: string, opId: string) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
+    
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
 
-    setStudents(prev => prev.map(s => {
-      if (s.id === studentId) {
-        const isDone = s.demonstrations[opId]?.status === DemonstrationStatus.DONE;
-        return {
-          ...s,
-          demonstrations: {
-            ...s.demonstrations,
-            [opId]: { 
-              status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE, 
-              date: isDone ? null : formattedDate 
-            }
-          }
-        };
-      }
-      return s;
-    }));
+    const isDone = student.demonstrations?.[opId]?.status === DemonstrationStatus.DONE;
+    
+    const updates: any = {};
+    updates[`/students/${studentId}/demonstrations/${opId}`] = {
+      status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE,
+      date: isDone ? null : formattedDate
+    };
+
+    update(ref(db), updates);
   };
 
+  // 3. ADICIONAR ALUNO NO FIREBASE
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newStudentName.trim().toUpperCase();
     if (!name) return;
 
-    const newStudent: Student = {
-      id: `std-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    const studentsRef = ref(db, 'students');
+    const newStudentRef = push(studentsRef); // Gera um ID único automático
+
+    const newStudentData = {
       name: name,
       classId: activeClassId,
       demonstrations: {}
     };
 
-    setStudents(prev => [...prev, newStudent]);
-    setNewStudentName('');
+    set(newStudentRef, newStudentData)
+      .then(() => setNewStudentName(''))
+      .catch((error) => alert("Erro ao salvar no banco: " + error.message));
   };
 
+  // 4. EDITAR NOME NO FIREBASE
   const onUpdateStudentName = (id: string, newName: string) => {
     const sanitized = newName.trim().toUpperCase();
     if (!sanitized) return;
-    setStudents(prev => prev.map(s => s.id === id ? { ...s, name: sanitized } : s));
+    update(ref(db, `students/${id}`), { name: sanitized });
   };
 
+  // 5. DELETAR DO FIREBASE
   const onDeleteStudent = (id: string) => {
-    setStudents(prev => prev.filter(s => s.id !== id));
+    if (window.confirm("Deseja realmente excluir este aluno?")) {
+      remove(ref(db, `students/${id}`));
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
-          {/* Logo SENAI */}
           <div className="flex items-center gap-4 shrink-0">
             <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl sm:text-2xl italic skew-x-[-12deg] shadow-lg">
               SENAI
             </div>
           </div>
 
-          {/* Título Centralizado Solicitado */}
           <div className="flex flex-col items-center justify-center text-center flex-1 px-2">
             <h1 className="text-white font-black text-xs sm:text-lg uppercase tracking-tight leading-none">
               Mecânico de Usinagem
@@ -119,7 +144,6 @@ const App: React.FC = () => {
             </h2>
           </div>
 
-          {/* Seleção de Turmas */}
           <div className="flex bg-black/20 p-1 rounded-xl gap-1 shrink-0">
             {classes.map(c => (
               <button
@@ -168,7 +192,7 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {operations.map(op => {
-            const completedCount = classStudents.filter(s => s.demonstrations[op.id]?.status === DemonstrationStatus.DONE).length;
+            const completedCount = classStudents.filter(s => s.demonstrations?.[op.id]?.status === DemonstrationStatus.DONE).length;
             return (
               <OperationCard 
                 key={op.id} 
