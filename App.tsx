@@ -178,13 +178,14 @@ const App: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <div className="flex bg-black/20 p-1 rounded-xl gap-1">
-              {classes.map(c => (
+              {classes.map((c, index) => (
                 <button 
                   key={c.id} 
                   onClick={() => setActiveClassId(c.id)} 
-                  className={`px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
+                  className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95] shadow-md' : 'text-white/60 hover:text-white'}`}
                 >
-                  {c.name.includes('Manhã') ? 'M' : 'T'}{c.name.slice(-1)}
+                  {/* Mapeia os nomes das turmas para as siglas desejadas baseadas na posição */}
+                  {index === 0 ? 'MA' : index === 1 ? 'MB' : index === 2 ? 'TA' : 'TB'}
                 </button>
               ))}
             </div>
