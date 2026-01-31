@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// Firebase Imports
+// Importação padrão para React/Vite
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, set, push, onValue, remove, update } from "firebase/database";
 
@@ -9,7 +9,7 @@ import OperationCard from './components/OperationCard';
 import StudentChecklistModal from './components/StudentChecklistModal';
 import GeneralSummaryModal from './components/GeneralSummaryModal';
 
-// --- CONFIGURAÇÃO DO SEU FIREBASE ---
+// Suas chaves (já conferidas)
 const firebaseConfig = {
   apiKey: "AIzaSyB0i38lQMhE9UgUIh5rqmZAuu1Z-KXUcI0",
   authDomain: "controle-de-demonstracao.firebaseapp.com",
@@ -21,7 +21,6 @@ const firebaseConfig = {
   measurementId: "G-KXRZLERB76"
 };
 
-// Inicializando Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -36,25 +35,22 @@ const App: React.FC = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
-  // 1. CARREGAR DADOS DO FIREBASE (Substituiu o LocalStorage)
+  // Carregar dados em tempo real
   useEffect(() => {
     const studentsRef = ref(db, 'students');
-    // O 'onValue' escuta o banco em tempo real
     const unsubscribe = onValue(studentsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Converte o objeto do Firebase em um Array para o React
         const firebaseStudents = Object.keys(data).map(key => ({
           ...data[key],
-          id: key // Usa a chave única do Firebase como ID
+          id: key 
         }));
         setStudents(firebaseStudents);
       } else {
         setStudents([]);
       }
     });
-
-    return () => unsubscribe(); // Limpa a conexão ao fechar
+    return () => unsubscribe();
   }, []);
 
   const classStudents = useMemo(() => {
@@ -72,7 +68,6 @@ const App: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  // 2. ATUALIZAR STATUS NO FIREBASE
   const handleUpdateStatus = (studentId: string, opId: string) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -91,143 +86,38 @@ const App: React.FC = () => {
     update(ref(db), updates);
   };
 
-  // 3. ADICIONAR ALUNO NO FIREBASE
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newStudentName.trim().toUpperCase();
     if (!name) return;
 
     const studentsRef = ref(db, 'students');
-    const newStudentRef = push(studentsRef); // Gera um ID único automático
+    const newStudentRef = push(studentsRef);
 
-    const newStudentData = {
+    set(newStudentRef, {
       name: name,
       classId: activeClassId,
       demonstrations: {}
-    };
-
-    set(newStudentRef, newStudentData)
-      .then(() => setNewStudentName(''))
-      .catch((error) => alert("Erro ao salvar no banco: " + error.message));
+    }).then(() => setNewStudentName(''));
   };
 
-  // 4. EDITAR NOME NO FIREBASE
   const onUpdateStudentName = (id: string, newName: string) => {
     const sanitized = newName.trim().toUpperCase();
     if (!sanitized) return;
     update(ref(db, `students/${id}`), { name: sanitized });
   };
 
-  // 5. DELETAR DO FIREBASE
   const onDeleteStudent = (id: string) => {
-    if (window.confirm("Deseja realmente excluir este aluno?")) {
+    if (window.confirm("Deseja excluir?")) {
       remove(ref(db, `students/${id}`));
     }
   };
 
   return (
+    // ... O RESTO DO RETURN É IGUAL AO SEU CÓDIGO ANTERIOR ...
+    // PODE MANTER O MESMO JSX (HTML) QUE VOCÊ JÁ TINHA
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
-      <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-24 flex items-center justify-between">
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="bg-[#E30613] text-white px-4 py-1 font-black text-xl sm:text-2xl italic skew-x-[-12deg] shadow-lg">
-              SENAI
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-center text-center flex-1 px-2">
-            <h1 className="text-white font-black text-xs sm:text-lg uppercase tracking-tight leading-none">
-              Mecânico de Usinagem
-            </h1>
-            <h2 className="text-white/70 font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] mt-1 border-t border-white/20 pt-1 w-full max-w-[150px] sm:max-w-[200px]">
-              Convencional
-            </h2>
-          </div>
-
-          <div className="flex bg-black/20 p-1 rounded-xl gap-1 shrink-0">
-            {classes.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setActiveClassId(c.id)}
-                className={`px-2 sm:px-4 py-2 rounded-lg text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeClassId === c.id ? 'bg-white text-[#004B95] shadow-lg' : 'text-white/60 hover:text-white'
-                }`}
-              >
-                {c.name.replace('Manhã Turma ', 'M').replace('Tarde Turma ', 'T')}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
-          <div className="flex-1">
-            <h2 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter mb-4">
-              {activeClass?.name}
-            </h2>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setIsSummaryOpen(true)}
-                className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg transition-all active:scale-95"
-              >
-                Painel Analítico
-              </button>
-            </div>
-          </div>
-
-          <form onSubmit={handleAddStudent} className="flex gap-2 shrink-0">
-            <input 
-              type="text"
-              value={newStudentName}
-              onChange={(e) => setNewStudentName(e.target.value)}
-              placeholder="NOME DO NOVO ALUNO..."
-              className="bg-white border-2 border-slate-200 px-6 py-3 rounded-xl text-xs font-black uppercase w-48 sm:w-64 focus:border-[#E30613] outline-none shadow-sm transition-all"
-            />
-            <button type="submit" className="bg-[#E30613] text-white px-6 rounded-xl font-black text-xs uppercase hover:brightness-110 active:scale-95 shadow-lg">
-              ADICIONAR
-            </button>
-          </form>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {operations.map(op => {
-            const completedCount = classStudents.filter(s => s.demonstrations?.[op.id]?.status === DemonstrationStatus.DONE).length;
-            return (
-              <OperationCard 
-                key={op.id} 
-                operation={op} 
-                totalStudents={classStudents.length} 
-                completedCount={completedCount}
-                onClick={() => handleOpenOp(op)}
-              />
-            );
-          })}
-        </div>
-      </main>
-
-      {isModalOpen && selectedOp && (
-        <StudentChecklistModal 
-          key={`modal-op-${selectedOp.id}`}
-          operation={selectedOp}
-          students={classStudents}
-          onClose={() => setIsModalOpen(false)}
-          onToggleStatus={(id) => handleUpdateStatus(id, selectedOp.id)}
-          onDeleteStudent={onDeleteStudent}
-          onUpdateStudentName={onUpdateStudentName}
-        />
-      )}
-
-      {isSummaryOpen && (
-        <GeneralSummaryModal 
-          activeClass={activeClass!}
-          students={classStudents}
-          operations={operations}
-          onClose={() => setIsSummaryOpen(false)}
-          onDeleteStudent={onDeleteStudent}
-          onUpdateStudentName={onUpdateStudentName}
-        />
-      )}
+      {/* Copie aqui todo o conteúdo do <header> e <main> do arquivo anterior */}
     </div>
   );
 };
