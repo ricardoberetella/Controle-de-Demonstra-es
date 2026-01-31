@@ -22,12 +22,10 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 const App: React.FC = () => {
-  // --- ESTADOS DE AUTENTICAÇÃO ---
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState(false);
 
-  // --- ESTADOS DO SISTEMA ---
   const [classes] = useState<ClassRoom[]>(INITIAL_CLASSES);
   const [activeClassId, setActiveClassId] = useState<string>(INITIAL_CLASSES[0].id);
   const [operations] = useState<Operation[]>(INITIAL_OPERATIONS);
@@ -37,11 +35,9 @@ const App: React.FC = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
-  // Lógica de Login
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const SENHA_MESTRA = "ianes662"; // SENHA ATUALIZADA
-
+    const SENHA_MESTRA = "ianes662"; 
     if (passwordInput === SENHA_MESTRA) {
       setIsAuthenticated(true);
       setLoginError(false);
@@ -56,10 +52,8 @@ const App: React.FC = () => {
     setPasswordInput('');
   };
 
-  // Carregar dados
   useEffect(() => {
     if (!isAuthenticated) return;
-
     const studentsRef = ref(db, 'students');
     const unsubscribe = onValue(studentsRef, (snapshot) => {
       const data = snapshot.val();
@@ -87,7 +81,6 @@ const App: React.FC = () => {
     [activeClassId, classes]
   );
 
-  // ... (restante das funções handleUpdateStatus, handleAddStudent, etc permanecem iguais)
   const handleUpdateStatus = (studentId: string, opId: string) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
@@ -125,28 +118,42 @@ const App: React.FC = () => {
     }
   };
 
-  // TELA DE LOGIN
+  // --- TELA DE LOGIN ATUALIZADA ---
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
         <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden">
           <div className="bg-[#004B95] p-8 text-center">
-            <div className="inline-block bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] mb-4 shadow-lg">
+            <div className="inline-block bg-[#E30613] text-white px-4 py-1 font-black text-xl italic skew-x-[-12deg] mb-6 shadow-lg">
               SENAI
             </div>
-            <h1 className="text-white font-black text-lg uppercase tracking-widest">Acesso Restrito</h1>
+            <h1 className="text-white font-black text-xl uppercase tracking-tight leading-tight">
+              Mecânico de Usinagem Convencional
+            </h1>
+            <p className="text-white/70 font-bold text-xs uppercase tracking-[0.2em] mt-2 italic">
+              controle de demonstrações
+            </p>
           </div>
+          
           <form onSubmit={handleLogin} className="p-8">
-            <label className="block text-slate-500 font-bold text-xs uppercase mb-2 tracking-widest text-center">Digite a senha de acesso</label>
+            <label className="block text-slate-500 font-bold text-[10px] uppercase mb-3 tracking-widest text-center">
+              Digite a senha de acesso
+            </label>
             <input 
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
-              className={`w-full bg-slate-100 border-2 ${loginError ? 'border-red-500' : 'border-slate-200'} rounded-xl px-4 py-4 outline-none focus:border-[#004B95] text-center font-bold text-2xl transition-all`}
+              className={`w-full bg-slate-100 border-2 ${loginError ? 'border-red-500' : 'border-slate-200'} rounded-xl px-4 py-4 outline-none focus:border-[#004B95] text-center font-bold text-2xl transition-all shadow-inner`}
               autoFocus
             />
-            {loginError && <p className="text-red-500 text-[10px] font-bold mt-2 text-center uppercase">Senha incorreta!</p>}
-            <button type="submit" className="w-full bg-[#004B95] text-white font-black py-4 rounded-xl mt-6 hover:bg-blue-800 transition-all shadow-lg uppercase text-sm">Entrar</button>
+            {loginError && <p className="text-red-500 text-[10px] font-black mt-3 text-center uppercase animate-bounce">Senha incorreta!</p>}
+            
+            <button 
+              type="submit" 
+              className="w-full bg-[#004B95] text-white font-black py-5 rounded-xl mt-6 hover:bg-blue-800 transition-all active:scale-95 shadow-lg uppercase tracking-widest text-sm"
+            >
+              Entrar no Sistema
+            </button>
           </form>
         </div>
       </div>
@@ -161,7 +168,11 @@ const App: React.FC = () => {
           
           <div className="flex bg-black/20 p-1 rounded-xl gap-1">
             {classes.map(c => (
-              <button key={c.id} onClick={() => setActiveClassId(c.id)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95]' : 'text-white/60 hover:text-white'}`}>
+              <button 
+                key={c.id} 
+                onClick={() => setActiveClassId(c.id)} 
+                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeClassId === c.id ? 'bg-white text-[#004B95]' : 'text-white/60 hover:text-white'}`}
+              >
                 {c.name.includes('Manhã') ? 'M' : 'T'}{c.name.slice(-1)}
               </button>
             ))}
@@ -178,23 +189,50 @@ const App: React.FC = () => {
             <button onClick={() => setIsSummaryOpen(true)} className="bg-[#004B95] text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Painel Analítico</button>
           </div>
           <form onSubmit={handleAddStudent} className="flex gap-2">
-            <input type="text" value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} placeholder="NOVO ALUNO..." className="bg-white border-2 border-slate-200 px-6 py-3 rounded-xl text-xs font-black uppercase w-64 focus:border-[#E30613] outline-none shadow-sm" />
-            <button type="submit" className="bg-[#E30613] text-white px-6 rounded-xl font-black text-xs uppercase shadow-lg">ADD</button>
+            <input 
+              type="text" 
+              value={newStudentName} 
+              onChange={(e) => setNewStudentName(e.target.value)} 
+              placeholder="NOVO ALUNO..." 
+              className="bg-white border-2 border-slate-200 px-6 py-3 rounded-xl text-xs font-black uppercase w-64 focus:border-[#E30613] outline-none shadow-sm" 
+            />
+            <button type="submit" className="bg-[#E30613] text-white px-6 rounded-xl font-black text-xs uppercase shadow-lg hover:brightness-110 active:scale-95 transition-all">ADD</button>
           </form>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {operations.map(op => (
-            <OperationCard key={op.id} operation={op} totalStudents={classStudents.length} completedCount={classStudents.filter(s => s.demonstrations?.[op.id]?.status === DemonstrationStatus.DONE).length} onClick={() => { setSelectedOp(op); setIsModalOpen(true); }} />
+            <OperationCard 
+              key={op.id} 
+              operation={op} 
+              totalStudents={classStudents.length} 
+              completedCount={classStudents.filter(s => s.demonstrations?.[op.id]?.status === DemonstrationStatus.DONE).length} 
+              onClick={() => { setSelectedOp(op); setIsModalOpen(true); }} 
+            />
           ))}
         </div>
       </main>
 
       {isModalOpen && selectedOp && (
-        <StudentChecklistModal operation={selectedOp} students={classStudents} onClose={() => setIsModalOpen(false)} onToggleStatus={(id) => handleUpdateStatus(id, selectedOp.id)} onDeleteStudent={onDeleteStudent} onUpdateStudentName={onUpdateStudentName} />
+        <StudentChecklistModal 
+          operation={selectedOp} 
+          students={classStudents} 
+          onClose={() => setIsModalOpen(false)} 
+          onToggleStatus={(id) => handleUpdateStatus(id, selectedOp.id)} 
+          onDeleteStudent={onDeleteStudent} 
+          onUpdateStudentName={onUpdateStudentName} 
+        />
       )}
+      
       {isSummaryOpen && (
-        <GeneralSummaryModal activeClass={activeClass!} students={classStudents} operations={operations} onClose={() => setIsSummaryOpen(false)} onDeleteStudent={onDeleteStudent} onUpdateStudentName={onUpdateStudentName} />
+        <GeneralSummaryModal 
+          activeClass={activeClass!} 
+          students={classStudents} 
+          operations={operations} 
+          onClose={() => setIsSummaryOpen(false)} 
+          onDeleteStudent={onDeleteStudent} 
+          onUpdateStudentName={onUpdateStudentName} 
+        />
       )}
     </div>
   );
