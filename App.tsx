@@ -8,6 +8,7 @@ import OperationCard from './components/OperationCard';
 import StudentChecklistModal from './components/StudentChecklistModal';
 import GeneralSummaryModal from './components/GeneralSummaryModal';
 
+// Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyB0i38lQMhE9UgUIh5rqmZAuu1Z-KXUcI0",
   authDomain: "controle-de-demonstracao.firebaseapp.com",
@@ -35,6 +36,7 @@ const App: React.FC = () => {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
 
+  // 1. LOGIN
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const SENHA_MESTRA = "ianes662"; 
@@ -52,15 +54,20 @@ const App: React.FC = () => {
     setPasswordInput('');
   };
 
+  // 2. BUSCA DE DADOS (CORRIGIDO)
   useEffect(() => {
     if (!isAuthenticated) return;
     const studentsRef = ref(db, 'students');
+    
     const unsubscribe = onValue(studentsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Mapeia o objeto do Firebase para Array garantindo que os campos existam
         const firebaseStudents = Object.keys(data).map(key => ({
           ...data[key],
           id: key,
+          name: data[key].name || "SEM NOME",
+          classId: data[key].classId,
           demonstrations: data[key].demonstrations || {}
         }));
         setStudents(firebaseStudents);
@@ -71,9 +78,11 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [isAuthenticated]);
 
+  // 3. FILTRO DE ALUNOS POR TURMA
   const classStudents = useMemo(() => {
-    return students.filter(s => s.classId === activeClassId)
-                   .sort((a, b) => a.name.localeCompare(b.name));
+    return students
+      .filter(s => s.classId === activeClassId)
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [students, activeClassId]);
 
   const activeClass = useMemo(() => 
@@ -81,7 +90,6 @@ const App: React.FC = () => {
     [activeClassId, classes]
   );
 
-  // Função para formatar o nome da turma conforme solicitado
   const formatClassName = (name: string) => {
     if (name.includes("Manhã") && name.includes("A")) return "Manhã Turma A";
     if (name.includes("Manhã") && name.includes("B")) return "Manhã Turma B";
@@ -90,29 +98,46 @@ const App: React.FC = () => {
     return name;
   };
 
+  // 4. ATUALIZAR STATUS DA OPERAÇÃO
   const handleUpdateStatus = (studentId: string, opId: string) => {
     const today = new Date();
     const formattedDate = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}`;
     const student = students.find(s => s.id === studentId);
     if (!student) return;
+
     const isDone = student.demonstrations?.[opId]?.status === DemonstrationStatus.DONE;
     const statusRef = ref(db, `students/${studentId}/demonstrations/${opId}`);
+    
     set(statusRef, {
       status: isDone ? DemonstrationStatus.PENDING : DemonstrationStatus.DONE,
       date: isDone ? null : formattedDate
     });
   };
 
+  // 5. ADICIONAR ALUNO (CORRIGIDO COM FEEDBACK)
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
     const name = newStudentName.trim().toUpperCase();
-    if (!name) return;
+    
+    if (!name) {
+      alert("Por favor, digite um nome.");
+      return;
+    }
+
     const studentsRef = ref(db, 'students');
     push(studentsRef, {
       name: name,
-      classId: activeClassId,
+      classId: activeClassId, // Salva o ID da turma ativa no momento
       demonstrations: {}
-    }).then(() => setNewStudentName(''));
+    })
+    .then(() => {
+      setNewStudentName('');
+      console.log("Sucesso: Aluno " + name + " gravado na turma " + activeClassId);
+    })
+    .catch((error) => {
+      console.error("Erro ao gravar no Firebase:", error);
+      alert("Erro ao gravar. Verifique a conexão.");
+    });
   };
 
   const onUpdateStudentName = (id: string, newName: string) => {
@@ -122,11 +147,12 @@ const App: React.FC = () => {
   };
 
   const onDeleteStudent = (id: string) => {
-    if (window.confirm("Excluir aluno?")) {
+    if (window.confirm("Excluir aluno permanentemente?")) {
       remove(ref(db, `students/${id}`));
     }
   };
 
+  // RENDERIZAÇÃO DO LOGIN
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
@@ -168,6 +194,7 @@ const App: React.FC = () => {
     );
   }
 
+  // RENDERIZAÇÃO DO SISTEMA
   return (
     <div className="min-h-screen bg-slate-100 font-sans pb-20">
       <header className="bg-[#004B95] shadow-xl sticky top-0 z-50">
@@ -205,7 +232,6 @@ const App: React.FC = () => {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-10 flex flex-col lg:flex-row lg:items-end justify-between gap-6 border-b-2 border-slate-200 pb-8">
           <div className="flex-1">
-            {/* TÍTULO CORRIGIDO: MANHÃ TURMA A, ETC. */}
             <h2 className="text-5xl font-black text-slate-900 uppercase italic tracking-tighter mb-4 leading-none">
               {activeClass ? formatClassName(activeClass.name) : ""}
             </h2>
@@ -226,6 +252,7 @@ const App: React.FC = () => {
           </form>
         </div>
 
+        {/* LISTA DE OPERAÇÕES */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {operations.map(op => (
             <OperationCard 
@@ -239,6 +266,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
+      {/* MODAIS */}
       {isModalOpen && selectedOp && (
         <StudentChecklistModal 
           operation={selectedOp} 
